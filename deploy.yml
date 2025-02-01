@@ -1,0 +1,39 @@
+name: Deploy MEV Bot
+
+on:
+  push:
+    branches:
+      - main  # Запуск при пуші в гілку main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Tests
+        run: npm test  # Запускає тести перед деплоєм
+
+      - name: Deploy to VPS
+        env:
+          SSH_HOST: "3.79.238.183"        # Вкажи IP-адресу свого VPS
+          SSH_USER: "ubuntu"              # Вкажи ім'я користувача (наприклад, ubuntu)
+          SSH_KEY: ${{ secrets.SSH_KEY }}  # Приватний ключ з GitHub Secrets
+        run: |
+          echo "$SSH_KEY" > private_key && chmod 600 private_key
+          ssh -i private_key -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "
+            cd /home/ubuntu/bot && 
+            git pull origin main && 
+            npm install && 
+            pm2 restart mev-bot
+          "
